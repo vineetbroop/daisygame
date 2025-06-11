@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Daisy vs Zombie - Ultimate Fight</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(to top, #1e1e1e, #121212);
+      overflow: hidden;
+      color: white;
+    }
+    .game-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background: url('bg.jpg') no-repeat center center/cover;
+      overflow: hidden;
+      display: none;
+    }
+    .character {
+      position: absolute;
+      bottom: 30px;
+      transition: transform 0.3s ease;
+    }
+    .dog {
+      left: 20px;
+      width: 120px;
+      z-index: 1;
+    }
+    .zombie {
+      left: 100%;
+      width: 120px;
+      transform: scaleX(-1);
+      z-index: 1;
+    }
+    .health-bar-container {
+      position: absolute;
+      top: 10px;
+      width: 90%;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      justify-content: space-between;
+    }
+    .health-box {
+      width: 45%;
+      height: 20px;
+      border: 2px solid white;
+      border-radius: 10px;
+      overflow: hidden;
+      background: rgba(255,255,255,0.1);
+    }
+    .health {
+      height: 100%;
+      background: limegreen;
+      width: 100%;
+      transition: width 0.3s;
+    }
+    .buttons {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 20px;
+      z-index: 2;
+    }
+    .btn {
+      padding: 15px 25px;
+      background: crimson;
+      border: none;
+      color: white;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 0 15px crimson;
+      transition: transform 0.2s;
+    }
+    .btn:active {
+      transform: scale(0.95);
+    }
+    .fire-effect {
+      position: absolute;
+      left: 110px;
+      bottom: 40px;
+      width: 60px;
+      height: 60px;
+      background: url('fire.gif') no-repeat center center/cover;
+      display: none;
+      z-index: 0;
+    }
+    .hit-effect {
+      position: absolute;
+      width: 50px;
+      height: 50px;
+      background: url('hit.png') no-repeat center center/cover;
+      display: none;
+      z-index: 3;
+    }
+    @keyframes fireMove {
+      0% { left: 110px; opacity: 1; }
+      100% { left: calc(100% - 160px); opacity: 1; }
+    }
+    .start-screen {
+      width: 100vw;
+      height: 100vh;
+      background: linear-gradient(to bottom, #000000, #1a1a1a);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+    .start-screen h1 {
+      font-size: 2.5rem;
+      margin-bottom: 20px;
+      animation: glow 2s infinite alternate;
+    }
+    .play-btn {
+      width: 100px;
+      height: 100px;
+      background: url('play.png') no-repeat center center/contain;
+      border: none;
+      cursor: pointer;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes glow {
+      from { color: #fff; text-shadow: 0 0 10px red; }
+      to { color: #ff5555; text-shadow: 0 0 20px red; }
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+    @media (max-width: 600px) {
+      .dog, .zombie {
+        width: 80px;
+      }
+      .btn {
+        padding: 10px 15px;
+        font-size: 0.9rem;
+      }
+      .start-screen h1 {
+        font-size: 1.8rem;
+      }
+      .play-btn {
+        width: 70px;
+        height: 70px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="start-screen">
+    <h1>Daisy VS Zombie</h1>
+    <button class="play-btn" onclick="startGame()"></button>
+  </div>
+
+  <div class="game-container" id="gameContainer">
+    <div class="health-bar-container">
+      <div class="health-box">
+        <div class="health" id="dogHealth"></div>
+      </div>
+      <div class="health-box">
+        <div class="health" id="zombieHealth"></div>
+      </div>
+    </div>
+
+    <div class="fire-effect" id="fire"></div>
+    <div class="hit-effect" id="hit"></div>
+
+    <img src="dog.png" class="character dog" id="dog" />
+    <img src="zombie.png" class="character zombie" id="zombie" />
+
+    <div class="buttons">
+      <button class="btn" onclick="attackZombie()">🔥 Fire Attack</button>
+    </div>
+  </div>
+
+  <script>
+    let zombieHealth = 100;
+    let dogHealth = 100;
+
+    const dog = document.getElementById('dog');
+    const zombie = document.getElementById('zombie');
+    const fire = document.getElementById('fire');
+    const hit = document.getElementById('hit');
+    const zombieBar = document.getElementById('zombieHealth');
+    const dogBar = document.getElementById('dogHealth');
+
+    let zombiePosition = window.innerWidth - 120;
+
+    function startGame() {
+      document.querySelector('.start-screen').style.display = 'none';
+      document.getElementById('gameContainer').style.display = 'block';
+      moveZombieTowardDog();
+    }
+
+    function moveZombieTowardDog() {
+      const interval = setInterval(() => {
+        zombiePosition -= 2;
+        zombie.style.left = zombiePosition + 'px';
+
+        const dogRect = dog.getBoundingClientRect();
+        const zombieRect = zombie.getBoundingClientRect();
+
+        if (zombieRect.left <= dogRect.right) {
+          clearInterval(interval);
+          dogHealth = 0;
+          dogBar.style.width = dogHealth + '%';
+          dog.style.opacity = '0';
+          alert("💀 Daisy got defeated! 🐶");
+        }
+      }, 30);
+    }
+
+    function attackZombie() {
+      fire.style.left = '110px';
+      fire.style.bottom = '40px';
+      fire.style.display = 'block';
+      fire.style.animation = 'fireMove 0.6s forwards';
+
+      dog.style.transform = 'translateX(30px)';
+
+      setTimeout(() => {
+        fire.style.display = 'none';
+        fire.style.animation = 'none';
+        void fire.offsetWidth;
+
+        hit.style.display = 'block';
+        hit.style.left = 'calc(100% - 150px)';
+        hit.style.top = '50%';
+
+        zombieHealth -= 15;
+        if (zombieHealth < 0) zombieHealth = 0;
+        zombieBar.style.width = zombieHealth + '%';
+
+        if (zombieHealth === 0) {
+          zombie.style.opacity = '0';
+          alert("🔥 Daisy defeated the Zombie! 🧟‍♂️");
+        }
+
+        setTimeout(() => {
+          hit.style.display = 'none';
+          dog.style.transform = 'translateX(0)';
+        }, 300);
+      }, 600);
+    }
+  </script>
+</body>
+</html>
